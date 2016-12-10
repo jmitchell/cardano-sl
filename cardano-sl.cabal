@@ -217,6 +217,7 @@ library
                       , universum >= 0.1.11
                       , unordered-containers
                       , vector
+                      , vector-instances
                       , yaml
 
   if flag(with-web)
@@ -350,6 +351,7 @@ executable cardano-wallet
                      , time-warp
                      , universum >= 0.1.11
                      , unordered-containers
+                     , vector
   default-language:    Haskell2010
   ghc-options:         -threaded -rtsopts
                        -Wall

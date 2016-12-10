@@ -15,6 +15,7 @@ import qualified Control.Monad.Catch  as Catch
 import           Control.Monad.Except (MonadError (throwError))
 import           Control.TimeWarp.Rpc (BinaryP, Dialog, Transfer)
 import           Data.List            ((!!))
+import qualified Data.Vector          as V
 import           Formatting           (int, ords, sformat, (%))
 import           Network.Wai          (Application)
 import           Servant.API          ((:<|>) ((:<|>)), FromHttpApiData (parseUrlPiece))
@@ -120,7 +121,7 @@ send srcIdx dstAddr c
     | otherwise = do
           let sk = genesisSecretKeys !! fromIntegral srcIdx
           na <- fmap dhtAddr <$> getKnownPeers
-          () <$ submitTx sk na [TxOut dstAddr c]
+          () <$ submitTx sk na (V.singleton (TxOut dstAddr c))
           putText $
               sformat ("Successfully sent "%coinF%" from "%ords%" address to "%addressF)
               c srcIdx dstAddr

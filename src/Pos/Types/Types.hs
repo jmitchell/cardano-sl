@@ -134,6 +134,7 @@ import           Data.Text.Buildable    (Buildable)
 import qualified Data.Text.Buildable    as Buildable
 import           Data.Text.Lazy.Builder (Builder)
 import           Data.Vector            (Vector)
+import           Data.Vector.Instances  ()
 import           Formatting             (Format, bprint, build, int, later, ords, sformat,
                                          stext, (%))
 import           Serokell.AcidState     ()
@@ -238,7 +239,7 @@ instance Buildable EpochOrSlot where
 type TxId = Hash Tx
 
 -- | 'Signature' of addrId.
-type TxSig = Signature (TxId, Word32, [TxOut])
+type TxSig = Signature (TxId, Word32, Vector TxOut)
 
 -- | A witness for a single input.
 data TxInWitness
@@ -291,8 +292,8 @@ instance Buildable TxOut where
 --
 -- NB: transaction witnesses are stored separately.
 data Tx = Tx
-    { txInputs  :: ![TxIn]   -- ^ Inputs of transaction.
-    , txOutputs :: ![TxOut]  -- ^ Outputs of transaction.
+    { txInputs  :: !(Vector TxIn)   -- ^ Inputs of transaction.
+    , txOutputs :: !(Vector TxOut)  -- ^ Outputs of transaction.
     } deriving (Eq, Ord, Show, Generic)
 
 type IdTxWitness = (TxId, (Tx, TxWitness))
@@ -471,7 +472,7 @@ instance Ssc ssc => Blockchain (MainBlockchain ssc) where
     data BodyProof (MainBlockchain ssc) = MainProof
         { mpNumber        :: !Word32
         , mpRoot          :: !(MerkleRoot Tx)
-        , mpWitnessesHash :: !(Hash [TxWitness])
+        , mpWitnessesHash :: !(Hash (Vector TxWitness))
         , mpMpcProof      :: !(SscProof ssc)
         } deriving (Generic)
     data ConsensusData (MainBlockchain ssc) = MainConsensusData
@@ -501,7 +502,7 @@ instance Ssc ssc => Blockchain (MainBlockchain ssc) where
           --
           -- TODO: should they be put into a separate Merkle tree or left as
           -- a list?
-          _mbWitnesses   :: ![TxWitness]
+          _mbWitnesses   :: !(Vector TxWitness)
         , -- | Data necessary for MPC.
           _mbMpc  :: !(SscPayload ssc)
         } deriving (Generic)
@@ -707,7 +708,7 @@ mbTxs :: Lens' (Body (MainBlockchain ssc)) (MerkleTree Tx)
 MAKE_LENS(mbTxs, _mbTxs)
 
 -- | Lens for witness list in main block body.
-mbWitnesses :: Lens' (Body (MainBlockchain ssc)) [TxWitness]
+mbWitnesses :: Lens' (Body (MainBlockchain ssc)) (Vector TxWitness)
 MAKE_LENS(mbWitnesses, _mbWitnesses)
 
 -- | Lens for 'SscPayload' in main block body.
@@ -849,7 +850,8 @@ blockTxs = gbBody . mbTxs
 
 -- | Getter from 'MainBlock' to a list of transactions with their witnesses.
 blockTxws :: Getter (MainBlock ssc) [(Tx,TxWitness)]
-blockTxws = gbBody . to (\b -> zip (toList (b ^. mbTxs)) (b ^. mbWitnesses))
+blockTxws = gbBody . to (\b -> zip (toList (b ^. mbTxs))
+                                   (toList (b ^. mbWitnesses)))
 
 -- | Lens from 'GenesisBlock' to 'SlotLeaders'.
 blockLeaders :: Lens' (GenesisBlock ssc) SlotLeaders

@@ -14,6 +14,7 @@ import           Control.Concurrent.STM.TVar   (TVar, modifyTVar', newTVar, read
 import           Control.TimeWarp.Timed        (sec)
 import           Data.Array.MArray             (newListArray, readArray, writeArray)
 import           Data.List                     (tail, (!!))
+import qualified Data.Vector                   as V
 import           Universum                     hiding (head)
 
 import           Pos.Constants                 (k, slotDuration)
@@ -38,7 +39,8 @@ tpsTxBound tps propThreshold =
 genChain :: SecretKey -> TxId -> Word32 -> [(Tx, TxWitness)]
 genChain sk txInHash txInIndex =
     let addr = makePubKeyAddress $ toPublic sk
-        (tx, w) = makePubKeyTx sk [(txInHash, txInIndex)] [TxOut addr 1]
+        (tx, w) = makePubKeyTx sk (V.singleton (txInHash, txInIndex))
+                                  (V.singleton (TxOut addr 1))
     in (tx, w) : genChain sk (hash tx) 0
 
 initTransaction :: GenOptions -> Int -> (Tx, TxWitness)
@@ -49,8 +51,8 @@ initTransaction GenOptions {..} i =
         addr = genesisAddresses !! i
         sk = genesisSecretKeys !! i
         input = (unsafeHash addr, 0)
-        outputs = replicate n $ TxOut addr 1
-    in makePubKeyTx sk [input] outputs
+        outputs = V.replicate n (TxOut addr 1)
+    in makePubKeyTx sk (V.singleton input) outputs
 
 data BambooPool = BambooPool
     { bpChains :: TArray Int [(Tx, TxWitness)]

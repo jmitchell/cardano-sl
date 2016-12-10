@@ -7,6 +7,7 @@
 
 module Main where
 
+import qualified Data.Vector            as V
 import           Universum
 #ifdef WITH_WALLET
 import           Control.Monad.Reader   (MonadReader (..), ReaderT, asks, runReaderT)
@@ -47,7 +48,7 @@ evalCmd (Balance addr) = lift (getBalance addr) >>=
                          evalCommands
 evalCmd (Send idx outputs) = do
     (skeys, na) <- ask
-    tx <- lift $ submitTx (skeys !! idx) na outputs
+    tx <- lift $ submitTx (skeys !! idx) na (V.fromList outputs)
     putText $ sformat ("Submitted transaction: "%txwF) tx
     evalCommands
 evalCmd Help = do

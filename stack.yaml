@@ -24,6 +24,10 @@ packages:
     git: https://github.com/serokell/kademlia.git
     commit: 062053ed11b92c8e25d4d61ea943506fd0482fa6
   extra-dep: true
+- location:
+    git: https://github.com/ekmett/vector-instances.git
+    commit: a8586dc19f91351b2296059dd3f281d9690524a3
+  extra-dep: true
 
 nix:
   shell-file: shell.nix

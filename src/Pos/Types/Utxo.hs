@@ -19,6 +19,7 @@ module Pos.Types.Utxo
 import           Control.Lens    (over, _1)
 import           Data.List       ((\\))
 import qualified Data.Map.Strict as M
+import qualified Data.Vector     as V
 import           Serokell.Util   (VerificationRes (..))
 import           Universum
 
@@ -43,8 +44,9 @@ verifyTxUtxo utxo txw = verifyTx (`findTxIn` utxo) txw
 -- outputs.
 applyTxToUtxo :: WithHash Tx -> Utxo -> Utxo
 applyTxToUtxo tx =
-    foldl' (.) identity
-        (map applyInput txInputs ++ zipWith applyOutput [0..] txOutputs)
+    V.foldl' (.) identity
+        (fmap applyInput txInputs <>
+         V.imap (\i -> applyOutput (fromIntegral i)) txOutputs)
   where
     Tx {..} = whData tx
     applyInput txIn = deleteTxIn txIn

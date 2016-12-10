@@ -19,6 +19,7 @@ import           Control.Lens               (set, view, _3, _4)
 import qualified Data.ByteString            as BS (pack)
 import           Data.DeriveTH              (derive, makeArbitrary)
 import           Data.Time.Units            (Microsecond, fromMicroseconds)
+import qualified Data.Vector                as V
 import           Pos.Constants              (epochSlots, sharedSeedLength)
 import           Pos.Crypto                 (LShare, PublicKey, SecretKey, hash, sign,
                                              toPublic)
@@ -95,7 +96,7 @@ instance Arbitrary Tx where
     arbitrary = do
         txIns <- getNonEmpty <$> arbitrary
         txOuts <- getNonEmpty <$> arbitrary
-        return $ Tx txIns txOuts
+        return $ Tx (V.fromList txIns) (V.fromList txOuts)
 
 -- | Type used to generate valid (w.r.t 'verifyTxAlone' and 'verifyTx')
 -- transactions and accompanying input information.
@@ -121,10 +122,11 @@ buildProperTx triplesList (inCoin, outCoin)= do
         let fun (Tx txIn txOut, fromSk, toSk, c) =
                 let inC = inCoin c
                     outC = outCoin c
-                    txToBeSpent = Tx txIn $ (makeTxOutput fromSk inC) : txOut
+                    txToBeSpent = Tx txIn $
+                        makeTxOutput fromSk inC `V.cons` txOut
                 in (txToBeSpent, fromSk, makeTxOutput toSk outC)
             txList = fmap fun triplesList
-            thisTxOutputs = fmap (view _3) txList
+            thisTxOutputs = V.fromList (fmap (view _3) txList)
             newTx (tx, fromSk, txOutput) =
                 let txHash = hash tx
                     txIn = TxIn txHash 0

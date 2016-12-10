@@ -27,6 +27,7 @@ module Pos.Types.Block
 import           Control.Lens         (ix, view, (^.), (^?), _3)
 import           Data.Binary          (Binary)
 import           Data.Default         (Default (def))
+import qualified Data.Vector          as V
 import           Formatting           (build, int, sformat, (%))
 import           Serokell.Util.Verify (VerificationRes (..), verifyGeneric)
 import           Universum
@@ -160,7 +161,7 @@ mkGenesisBlock prevHeader epoch leaders =
 mkMainBody :: [(Tx, TxWitness)] -> SscPayload ssc -> Body (MainBlockchain ssc)
 mkMainBody txws mpc = MainBody {
     _mbTxs = mkMerkleTree (map fst txws),
-    _mbWitnesses = map snd txws,
+    _mbWitnesses = V.fromList (map snd txws),
     _mbMpc = mpc }
 
 verifyConsensusLocal :: Ssc ssc => BlockHeader ssc -> VerificationRes

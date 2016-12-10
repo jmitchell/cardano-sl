@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts    #-}
+{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TupleSections       #-}
@@ -15,7 +16,9 @@ import           Control.Lens        (makeLenses, use, uses, (%=), (.=), (^.))
 import           Data.Bifunctor      (first)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet        as HS
-import           Data.List           (tail, zipWith3)
+import           Data.List           (tail)
+import           Data.Vector         (Vector)
+import qualified Data.Vector         as V
 import           Formatting          (build, int, sformat, (%))
 import           Serokell.Util       (VerificationRes, verifyGeneric)
 import           Universum
@@ -37,8 +40,8 @@ verifyTxAlone Tx {..} =
         , verifyOutputs
         ]
   where
-    verifyOutputs = verifyGeneric $ zipWith outputPredicate [0..] txOutputs
-    outputPredicate (i :: Word) TxOut{..} =
+    verifyOutputs = verifyGeneric $ toList $ V.imap outputPredicate txOutputs
+    outputPredicate (i :: Int) TxOut{..} =
         ( txOutValue > 0
         , sformat
               ("output #"%int%" has non-positive value: "%coinF) i txOutValue)
@@ -59,10 +62,12 @@ verifyTx inputResolver (tx@Tx{..}, witnesses) =
   where
     outSum :: Integer
     outSum = sum $ fmap (toInteger . txOutValue) txOutputs
-    extendedInputs :: [Maybe (TxIn, TxOut)]
+    extendedInputs :: Vector (Maybe (TxIn, TxOut))
     extendedInputs = fmap extendInput txInputs
     extendInput txIn = (txIn,) <$> inputResolver txIn
-    resolvedInputs = catMaybes extendedInputs
+    resolvedInputs =
+        V.concatMap (\case Nothing -> mempty; Just x -> V.singleton x)
+                    extendedInputs
     inpSum :: Integer
     inpSum = sum $ fmap (toInteger . txOutValue . snd) resolvedInputs
     verifyCounts =
@@ -89,8 +94,9 @@ verifyTx inputResolver (tx@Tx{..}, witnesses) =
                                (abs $ resInps - extInps))
         in verifyGeneric [verifier]
     verifyInputs =
-        verifyGeneric $ concat $
-            zipWith3 inputPredicates [0..] extendedInputs (toList witnesses)
+        verifyGeneric $ concat $ toList $
+            V.izipWith (\i -> inputPredicates (fromIntegral i))
+                       extendedInputs witnesses
 
     inputPredicates
         :: Word                     -- ^ Input index
@@ -160,7 +166,8 @@ topsortTxs toTx input =
         tsVisited %= HS.insert txHash
         let visitedNew = HS.insert txHash visitedThis
             dependsUnfiltered =
-                mapMaybe (\x -> HM.lookup (txInHash x) txHashes) (txInputs tx)
+                mapMaybe (\x -> HM.lookup (txInHash x) txHashes)
+                         (toList (txInputs tx))
         depends <- filterM
             (fmap not . uses tsVisited . HS.member . whHash . toTx)
             dependsUnfiltered

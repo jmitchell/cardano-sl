@@ -16,6 +16,7 @@ import           Control.TimeWarp.Rpc  (NetworkAddress)
 import           Data.List             (tail)
 import qualified Data.Map              as M
 import           Data.Maybe            (fromJust)
+import           Data.Vector           (Vector)
 import qualified Data.Vector           as V
 import           Formatting            (build, sformat, (%))
 import           System.Wlog           (logError, logInfo)
@@ -32,8 +33,8 @@ import           Pos.Types             (Address, Coin, Tx (..), TxId, TxIn (..),
 import           Pos.WorkMode          (NodeContext (..), WorkMode, getNodeContext)
 
 type TxOutIdx = (TxId, Word32)
-type TxInputs = [TxOutIdx]
-type TxOutputs = [TxOut]
+type TxInputs = Vector TxOutIdx
+type TxOutputs = Vector TxOut
 type TxError = Text
 
 -----------------------------------------------------------------------------
@@ -50,7 +51,7 @@ makePubKeyTx sk inputs txOutputs = (Tx {..}, txWitness)
             PkWitness {
                 twKey = pk,
                 twSig = sign sk (txInHash, txInIndex, txOutputs) }
-        txWitness = V.fromList (map makeTxInWitness inputs)
+        txWitness = fmap makeTxInWitness inputs
 
 -- | Select only TxOuts for given addresses
 filterUtxo :: Address -> Utxo -> Utxo
@@ -68,11 +69,12 @@ createTx utxo sk outputs = uncurry (makePubKeyTx sk) <$> inpOuts
         sortedUnspent = sortBy (comparing $ Down . txOutValue . snd) allUnspent
         inpOuts = do
             futxo <- evalStateT (pickInputs []) (totalMoney, sortedUnspent)
-            let inputs = map fst futxo
+            let inputs = V.fromList (map fst futxo)
                 inputSum = sum $ map (txOutValue . snd) futxo
                 newOuts = if inputSum > totalMoney
-                          then TxOut ourAddr (inputSum - totalMoney) : outputs
-                          else outputs
+                    then TxOut ourAddr (inputSum - totalMoney)
+                             `V.cons` outputs
+                    else outputs
             pure (inputs, newOuts)
 
         pickInputs :: FlatUtxo -> InputPicker FlatUtxo
@@ -100,7 +102,8 @@ submitSimpleTx [] _ _ =
     logError "No addresses to send" >> fail "submitSimpleTx failed"
 submitSimpleTx na input output = do
     sk <- ncSecretKey <$> getNodeContext
-    let tx = makePubKeyTx sk [input] [uncurry TxOut output]
+    let tx = makePubKeyTx sk (V.singleton input)
+                             (V.singleton (uncurry TxOut output))
     submitTxRaw na tx
     pure tx
 
