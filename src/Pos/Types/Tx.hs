@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleContexts    #-}
-{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell     #-}
 {-# LANGUAGE TupleSections       #-}
@@ -65,9 +64,7 @@ verifyTx inputResolver (tx@Tx{..}, witnesses) =
     extendedInputs :: Vector (Maybe (TxIn, TxOut))
     extendedInputs = fmap extendInput txInputs
     extendInput txIn = (txIn,) <$> inputResolver txIn
-    resolvedInputs =
-        V.concatMap (\case Nothing -> mempty; Just x -> V.singleton x)
-                    extendedInputs
+    resolvedInputs = V.concatMap (maybe mempty V.singleton) extendedInputs
     inpSum :: Integer
     inpSum = sum $ fmap (toInteger . txOutValue . snd) resolvedInputs
     verifyCounts =
