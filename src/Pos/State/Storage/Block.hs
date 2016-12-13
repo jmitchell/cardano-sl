@@ -43,6 +43,7 @@ import           Data.Default            (def)
 import qualified Data.HashMap.Strict     as HM
 import           Data.List               ((!!))
 import           Data.List.NonEmpty      (NonEmpty ((:|)), (<|))
+import qualified Data.List.NonEmpty      as NE
 import           Data.SafeCopy           (SafeCopy (..), contain, safeGet, safePut)
 import           Data.Vector             (Vector)
 import qualified Data.Vector             as V
@@ -137,19 +138,27 @@ type Update ssc a = forall m x. (Ssc ssc, HasBlockStorage x ssc, MonadState x m)
 getBlock :: HeaderHash ssc -> Query ssc (Maybe (Block ssc))
 getBlock h = view (blkBlocks . at h)
 
+-- | Get blocks to a specified depth, i.e. number of times one needs to use
+-- pointer to previous block. O(n) -- just follows blockhashes.
+getBlocksUntilDepth :: Word -> Query ssc (Maybe (NonEmpty (Block ssc)))
+getBlocksUntilDepth n = do
+    -- TODO: optimize using blkGenesisBlocks.
+    headHash <- view blkHead
+    getBlocksUntilDepthDo n headHash []
+  where
+    getBlocksUntilDepthDo :: Word -> HeaderHash ssc -> [Block ssc] -> Query ssc (Maybe (NonEmpty (Block ssc)))
+    getBlocksUntilDepthDo i h acc = do
+        mb <- getBlock h
+        case mb of
+            Nothing         -> pure Nothing
+            Just b
+                | i == 0    -> pure . Just $ b :| acc
+                | otherwise -> getBlocksUntilDepthDo (pred i) (view prevBlockL b) (b : acc)
+
 -- | Get block by its depth, i.e. number of times one needs to use
 -- pointer to previous block. O(n) -- just follows blockhashes.
 getBlockByDepth :: Word -> Query ssc (Maybe (Block ssc))
-getBlockByDepth n = do
-    -- TODO: optimize using blkGenesisBlocks.
-    headHash <- view blkHead
-    getBlockByDepthDo n headHash
-  where
-    getBlockByDepthDo :: Word -> HeaderHash ssc -> Query ssc (Maybe (Block ssc))
-    getBlockByDepthDo 0 h = getBlock h
-    getBlockByDepthDo i h =
-        maybe (pure Nothing) (getBlockByDepthDo (i - 1) . view prevBlockL) =<<
-        getBlock h
+getBlockByDepth = fmap (fmap NE.head) . getBlocksUntilDepth
 
 -- | Get block which is the head of the best chain.
 getHeadBlock :: Query ssc (Block ssc)
