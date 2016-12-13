@@ -680,12 +680,15 @@ actualizeGenesisBlocks = do
         getBlock h
 
 -- | Rollback last `n` blocks.
-blkRollback :: Ssc ssc => Word -> Update ssc ()
-blkRollback =
-    blkSetHead . maybe onError (hash . getBlockHeader) <=<
-    readerToState . getBlockByDepth
-  where
-    onError = panic "Attempt to rollback too many blocks"
+-- Returns all blocks that are removed from the chain by this rollback.
+blkRollback :: Ssc ssc => Word -> Update ssc [Block ssc]
+blkRollback n = do
+    mbs <- readerToState $ getBlocksUntilDepth n
+    case mbs of
+        Nothing -> panic "Attempt to rollback to many blocks"
+        Just bs -> do
+            blkSetHead $ hash $ getBlockHeader $ NE.head bs
+            pure $ NE.tail bs
 
 -- TODO: improve
 -- | Remove obsolete cached blocks, alternative chains which are
