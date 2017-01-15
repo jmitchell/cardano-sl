@@ -73,7 +73,7 @@ while [[ $i -lt $panesCnt ]]; do
       fi
   fi
 
-  stake_distr=" --flat-distr \"($n, 100000)\" "
+  stake_distr=" --flat-distr \"($n, 1000000000)\" "
   if [[ "$CSL_PRODUCTION" != "" ]]; then
       stake_distr=""
   fi
@@ -81,7 +81,7 @@ while [[ $i -lt $panesCnt ]]; do
   if [[ $i -lt $n ]]; then
     tmux send-keys "$(node_cmd $i "$time_lord" "$dht_conf" "$stats" "$stake_distr" "$wallet_args")" C-m
   else
-    tmux send-keys "NODE_COUNT=$n $base/bench/runSmartGen.sh 0 -R 1 -N 2 -t $TPS -S 3 --init-money 100000 --recipients-share 0" C-m
+    tmux send-keys "NODE_COUNT=$n $base/bench/runSmartGen.sh 0 -R 1 -N 2 -t $TPS -S 3 --init-money 1000000000 --recipients-share 0" C-m
   fi
   i=$((i+1))
 done

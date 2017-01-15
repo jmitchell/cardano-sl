@@ -21,4 +21,4 @@ if [[ "$NODE_COUNT" != "" ]]; then
 fi
 
 $(find_binary cardano-smart-generator) $(peer_config $i) $(logs smartgen$i.log) \
-                                       --flat-distr "($nc, 100000)" $ssc_algo -i $i "$@"
+                                       --flat-distr "($nc, 1000000000)" $ssc_algo -i $i "$@"
