@@ -18,7 +18,7 @@ import           Formatting                  (build, sformat, (%))
 import           Mockable                    (fork)
 import           Node                        (SendActions)
 import           Serokell.Util.Exceptions    ()
-import           System.Wlog                 (logInfo)
+import           System.Wlog                 (logInfo, logWarning)
 import           Universum
 
 import           Pos.Binary.Communication    ()
@@ -90,14 +90,14 @@ lrcSingleShotImpl withSemaphore epoch consumers = do
                     ( needComputeLeaders || needComputeRichmen
                     , expectedRichmenComp)
         when need $ do
-            logInfo "LRC is starting"
+            logWarning "LRC is starting"
             if withSemaphore
                 then withBlkSemaphore_ $ lrcDo epoch filteredConsumers
             -- we don't change/use it in lcdDo in fact
                 else void . lrcDo epoch filteredConsumers =<< GS.getTip
-            logInfo "LRC has finished"
+            logWarning "LRC has finished"
         putEpoch epoch
-        logInfo "LRC has updated LRC DB"
+        logWarning "LRC has updated LRC DB"
 
 tryAcuireExclusiveLock
     :: (MonadMask m, MonadIO m)
