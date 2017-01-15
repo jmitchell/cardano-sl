@@ -4,7 +4,7 @@
 module Main where
 
 import           Control.Concurrent.STM.TVar (modifyTVar', newTVarIO, readTVarIO)
-import           Control.Lens                (view, _1)
+import           Control.Lens                (view, (^.), _1)
 import           Data.List                   ((!!))
 import           Data.Maybe                  (fromMaybe)
 import           Data.Proxy                  (Proxy (..))
@@ -16,7 +16,7 @@ import           Node                        (SendActions)
 import           Options.Applicative         (execParser)
 import           System.FilePath.Posix       ((</>))
 import           System.Random.Shuffle       (shuffleM)
-import           System.Wlog                 (logInfo)
+import           System.Wlog                 (logInfo, logNotice, logWarning)
 import           Test.QuickCheck             (arbitrary, generate)
 import           Universum                   hiding (forConcurrently)
 
@@ -24,10 +24,12 @@ import qualified Pos.CLI                     as CLI
 import           Pos.Communication           (BiP)
 import           Pos.Constants               (genesisN, neighborsSendThreshold,
                                               slotDuration, slotSecurityParam)
-import           Pos.Crypto                  (KeyPair (..), hash)
+import           Pos.Crypto
+import           Pos.Data.Attributes
+import           Pos.DB.GState
 import           Pos.DHT.Model               (DHTNodeType (..), MonadDHT, dhtAddr,
                                               discoverPeers, getKnownPeers)
-import           Pos.Genesis                 (genesisUtxo)
+import           Pos.Genesis
 import           Pos.Launcher                (BaseParams (..), LoggingParams (..),
                                               NodeParams (..), RealModeResources,
                                               bracketResources, initLrc, runNode,
@@ -37,11 +39,11 @@ import           Pos.Ssc.Class               (SscConstraint, SscParams)
 import           Pos.Ssc.GodTossing          (GtParams (..), SscGodTossing)
 import           Pos.Ssc.NistBeacon          (SscNistBeacon)
 import           Pos.Ssc.SscAlgo             (SscAlgo (..))
-import           Pos.Types                   (TxAux)
+import           Pos.Types
 import           Pos.Util.JsonLog            ()
 import           Pos.Util.TimeWarp           (NetworkAddress, ms, sec)
 import           Pos.Util.UserSecret         (simpleUserSecret)
-import           Pos.Wallet                  (submitTxRaw)
+import           Pos.Wallet
 import           Pos.WorkMode                (ProductionMode)
 
 import           GenOptions                  (GenOptions (..), optsInfo)
@@ -54,25 +56,6 @@ import           TxGeneration                (BambooPool, createBambooPool, curB
 import           Util
 
 
--- | Resend initTx with `slotDuration` period until it's verified
-seedInitTx :: forall ssc . SscConstraint ssc
-           => SendActions BiP (ProductionMode ssc)
-           -> Double
-           -> BambooPool
-           -> TxAux
-           -> ProductionMode ssc ()
-seedInitTx sendActions recipShare bp initTx = do
-    na <- getPeers recipShare
-    logInfo "Issuing seed transaction"
-    submitTxRaw sendActions na initTx
-    logInfo "Waiting for 1 slot before resending..."
-    delay slotDuration
-    -- If next tx is present in utxo, then everything is all right
-    tx <- liftIO $ curBambooTx bp 1
-    isVer <- isTxVerified $ view _1 tx
-    if isVer
-        then pure ()
-        else seedInitTx sendActions recipShare bp initTx
 
 chooseSubset :: Double -> [a] -> [a]
 chooseSubset share ls = take n ls
@@ -93,11 +76,6 @@ runSmartGen :: forall ssc . SscConstraint ssc
 runSmartGen res np@NodeParams{..} sscnp opts@GenOptions{..} =
   runProductionMode res np sscnp $ \sendActions -> do
     initLrc
-    let getPosixMs = round . (*1000) <$> liftIO getPOSIXTime
-        initTx = initTransaction opts
-
-    bambooPools <- forM goGenesisIdxs $ \(fromIntegral -> i) ->
-        liftIO $ createBambooPool goMOfNParams i $ initTx i
 
     txTimestamps <- liftIO createTxTimestamps
 
@@ -110,14 +88,52 @@ runSmartGen res np@NodeParams{..} sscnp opts@GenOptions{..} =
     -- fill tx verification times
     void $ fork $ checkWorker txTimestamps logsFilePrefix
 
-    logInfo "STARTING TXGEN"
+    logWarning "STARTING TXGEN"
 
-    let forFold init ls act = foldM act init ls
+    let ourAddr = genesisAddresses !! 0
+    ourCoins <- sumCoins . map (txOutValue . fst) . toList <$>
+                getFilteredUtxo ourAddr
 
-    -- [CSL-220] Write MonadBaseControl instance for KademliaDHT
-    -- Seeding init tx
-    _ <- forConcurrently goGenesisIdxs $ \(fromIntegral -> i) ->
-            seedInitTx sendActions goRecipientShare (bambooPools !! i) (initTx i)
+    let runTxLoop inp n = do
+            na <- getPeers goRecipientShare
+            delay $ sec 10
+            logWarning ("Issuing transaction #" <> show n)
+            let sk = genesisSecretKeys !! 0
+                pk = genesisPublicKeys !! 0
+                restCoins = let g = ourCoins - n * round goInitTps
+                            in if g < 0 then panic "we used up all coins!"
+                                        else fromIntegral g
+                outputs =
+                    (TxOut ourAddr (mkCoin restCoins), []) :
+                    [(TxOut (PubKeyAddress h) (mkCoin 1), [])
+                        | i <- [1..round goInitTps :: Int32]
+                        , let h = unsafeHash (fromIntegral n :: Int32, i) ]
+                tx = makePubKeyTx sk [let TxIn a b = inp in (a, b)] outputs
+                inp' = TxIn (hash (tx ^. _1)) 0
+                nextTx = Tx [inp'] [] (mkAttributes ())
+            submitTxRaw sendActions na tx
+            logWarning $
+                "Waiting for 2 slots for tx #" <>
+                show n <> " = " <> show (n * round goInitTps) <>
+                " to get adopted..."
+            delay (slotDuration * 2)
+            isVer <- isTxVerified nextTx
+            if isVer then do
+                logWarning $
+                    "Submitted successfully, now there are " <>
+                    show (n * round goInitTps) <> " addresses"
+                logWarning $
+                    "Submitting the next transaction in 10s"
+                runTxLoop inp' (n+1)
+            else do
+                logWarning $ "Submission failed, resubmitting in 10s"
+                runTxLoop inp n
+
+    runTxLoop (TxIn (unsafeHash (genesisAddresses !! 0)) 0) 1
+
+    delay $ sec 100500
+
+{-
 
     -- Start writing tps file
     liftIO $ writeFile (logsFilePrefix </> tpsCsvFile) tpsCsvHeader
@@ -208,6 +224,8 @@ runSmartGen res np@NodeParams{..} sscnp opts@GenOptions{..} =
         delay phaseDurationMs
 
         return (newTPS, newStep)
+
+  -}
 
 -----------------------------------------------------------------------------
 -- Main
