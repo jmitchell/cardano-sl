@@ -9,6 +9,7 @@ module Pos.DB.GState.Utxo
          getGenUtxo
        , getTxOutFromDB
        , getTxOut
+       , filterUtxo
 
        -- * Operations
        , UtxoOp (..)
