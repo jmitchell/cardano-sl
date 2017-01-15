@@ -81,7 +81,11 @@ while [[ $i -lt $panesCnt ]]; do
   if [[ $i -lt $n ]]; then
     tmux send-keys "$(node_cmd $i "$time_lord" "$dht_conf" "$stats" "$stake_distr" "$wallet_args")" C-m
   else
-    tmux send-keys "NODE_COUNT=$n $base/bench/runSmartGen.sh 0 -R 1 -N 2 -t $TPS -S 3 --init-money 1000000000 --recipients-share 0" C-m
+    lte=''
+    if [[ $LOG_TEMPLATE != "" ]]; then
+      lte="LOG_TEMPLATE=$LOG_TEMPLATE"
+    fi
+    tmux send-keys "NODE_COUNT=$n $lte $base/bench/runSmartGen.sh 0 -R 1 -N 2 -t $TPS -S 3 --init-money 1000000000 --recipients-share 0" C-m
   fi
   i=$((i+1))
 done
