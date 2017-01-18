@@ -66,7 +66,7 @@ import           Pos.Communication              (BiP (..), SysStartRequest (..),
                                                  sysStartRespListener)
 import           Pos.Communication.PeerState    (runPeerStateHolder)
 import           Pos.Constants                  (blockRetrievalQueueSize,
-                                                 networkConnectionTimeout)
+                                                 networkConnectionTimeout, slotDuration)
 import qualified Pos.Constants                  as Const
 import           Pos.Context                    (ContextHolder (..), NodeContext (..),
                                                  runContextHolder)
@@ -264,6 +264,7 @@ runCH NodeParams {..} sscNodeContext act = do
             NodeContext
             { ncSystemStart = npSystemStart
             , ncSecretKey = npSecretKey
+            , ncSlotDuration = slotDuration
             , ncGenesisUtxo = npCustomUtxo
             , ncGenesisLeaders = genesisLeaders npCustomUtxo
             , ncTimeLord = npTimeLord

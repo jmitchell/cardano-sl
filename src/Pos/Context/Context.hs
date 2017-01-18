@@ -17,7 +17,7 @@ import           Node                           (NodeId)
 import           Universum
 
 import           Pos.Crypto                     (PublicKey, SecretKey, toPublic)
-import           Pos.Security.CLI             (AttackTarget, AttackType)
+import           Pos.Security.CLI               (AttackTarget, AttackType)
 import           Pos.Ssc.Class.Types            (Ssc (SscNodeContext))
 import           Pos.Types                      (Address, BlockHeader, EpochIndex,
                                                  HeaderHash, SlotId, SlotLeaders,
@@ -37,6 +37,8 @@ type LrcSyncData = (Bool, EpochIndex)
 data NodeContext ssc = NodeContext
     { ncSystemStart         :: !Timestamp
     -- ^ Time when system started working.
+    , ncSlotDuration        :: !Microsecond
+    -- ^ Length of slot
     , ncSecretKey           :: !SecretKey
     -- ^ Secret key used for blocks creation.
     , ncGenesisUtxo         :: !Utxo

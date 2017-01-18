@@ -33,6 +33,7 @@ import qualified Pos.DB.GState               as GS
 import           Pos.Delegation              (DelegationT (..))
 import           Pos.DHT.Model               (MonadDHT)
 import           Pos.DHT.Real                (KademliaDHT (..))
+import           Pos.Slotting                (MonadSlots)
 import           Pos.Ssc.Class.Types         (Ssc)
 import           Pos.Ssc.Extra               (SscHolder (..))
 import           Pos.Txp.Class               (getMemPool, getUtxoView)
@@ -176,6 +177,7 @@ type WalletMode ssc m
       , MonadKeys m
       , WithWalletContext m
       , MonadDHT m
+      , MonadSlots m
       )
 
 ---------------------------------------------------------------
