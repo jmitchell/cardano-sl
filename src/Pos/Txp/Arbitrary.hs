@@ -11,8 +11,8 @@ import           Universum
 import           Pos.Binary.Update             ()
 import           Pos.Communication.Types.Relay (DataMsg (..))
 import           Pos.Txp.Types.Communication   (TxMsgContents (..), TxMsgTag (..))
-import           Pos.Types.Arbitrary           ()
-import           Pos.Update.Arbitrary.Core     ()
+-- import           Pos.Types.Arbitrary           ()
+-- import           Pos.Update.Arbitrary.Core     ()
 
 
 derive makeArbitrary ''TxMsgTag

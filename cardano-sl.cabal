@@ -37,7 +37,7 @@ Flag with-wallet
 library
   exposed-modules:      Pos.Aeson
                         Pos.Binary
-                        Pos.Block.Arbitrary
+                        -- Pos.Block.Arbitrary
                         Pos.Block.Network
                         Pos.CLI
                         Pos.Context
@@ -64,7 +64,7 @@ library
 
                         -- Genesis data
                         Pos.Genesis
-                        Pos.Genesis.Arbitrary
+                        -- Pos.Genesis.Arbitrary
 
                         -- LRC
                         Pos.Lrc
@@ -89,7 +89,7 @@ library
                         Pos.Reporting.Exceptions
 
                         -- SSC
-                        Pos.Ssc.Arbitrary
+                        -- Pos.Ssc.Arbitrary
                         Pos.Ssc.Class
                         Pos.Ssc.GodTossing
                         Pos.Ssc.NistBeacon
@@ -101,7 +101,7 @@ library
                         Pos.Txp
                         Pos.Txp.Listeners
                         Pos.Types
-                        Pos.Types.Arbitrary
+                        -- Pos.Types.Arbitrary
                         Pos.Types.Arbitrary.Unsafe
                         Pos.Types.Block
                         Pos.Types.Block.Types
@@ -114,7 +114,7 @@ library
 
                         -- Update system
                         Pos.Update
-                        Pos.Update.Arbitrary
+                        -- Pos.Update.Arbitrary
                         Pos.Update.Core
 
                         -- Utilities/helpers
@@ -172,7 +172,7 @@ library
                         Pos.Block.Worker
 
                         -- Network
-                        Pos.Communication.Arbitrary
+                        -- Pos.Communication.Arbitrary
                         Pos.Communication.BiP
                         Pos.Communication.Message
                         Pos.Communication.Methods
@@ -287,7 +287,7 @@ library
                         Pos.Ssc.Extra.Logic
                         Pos.Ssc.Extra.Types
 
-                        Pos.Ssc.GodTossing.Arbitrary
+                        -- Pos.Ssc.GodTossing.Arbitrary
                         Pos.Ssc.GodTossing.Core
                         Pos.Ssc.GodTossing.Core.Core
                         Pos.Ssc.GodTossing.Core.Types
@@ -325,7 +325,7 @@ library
                         Pos.Statistics.Tx
 
                         -- Txp
-                        Pos.Txp.Arbitrary
+                        -- Pos.Txp.Arbitrary
                         Pos.Txp.Class
                         Pos.Txp.Error
                         Pos.Txp.Holder
@@ -347,9 +347,9 @@ library
                         Pos.Worker.SysStart
 
                         -- Update System
-                        Pos.Update.Arbitrary.Core
-                        Pos.Update.Arbitrary.Network
-                        Pos.Update.Arbitrary.Poll
+                        -- Pos.Update.Arbitrary.Core
+                        -- Pos.Update.Arbitrary.Network
+                        -- Pos.Update.Arbitrary.Poll
                         Pos.Update.Core.Types
                         Pos.Update.Download
                         Pos.Update.Error
@@ -453,7 +453,7 @@ library
                       , cryptonite-openssl >= 0.5
                       , data-default
                       , deepseq
-                      , derive
+                      -- , derive
                       , deriving-compat
                       , digest
                       , directory
@@ -1019,8 +1019,10 @@ executable cardano-avvmmigrate
                      , aeson
                      , base
                      , bytestring
-                     , cardano-sl-core
-                     , cardano-sl
+                     -- , cardano-sl-core
+                     -- , cardano-sl
+                     , cardano-sl-arbitrary
+                     , derive
                      , directory
                      , ed25519
                      , filepath

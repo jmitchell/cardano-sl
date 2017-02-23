@@ -12,7 +12,7 @@ module Pos.Delegation.Types
        --, CheckProxySKConfirmedRes (..)
        ) where
 
-import           Data.DeriveTH   (derive, makeArbitrary)
+-- import           Data.DeriveTH   (derive, makeArbitrary)
 import           Test.QuickCheck (Arbitrary (..), choose)
 import           Universum
 
@@ -59,7 +59,7 @@ data ConfirmProxySK =
 -- Arbitrary instances
 ----------------------------------------------------------------------------
 
-derive makeArbitrary ''SendProxySK
-derive makeArbitrary ''ConfirmProxySK
+-- derive makeArbitrary ''SendProxySK
+-- derive makeArbitrary ''ConfirmProxySK
 --derive makeArbitrary ''CheckProxySKConfirmed
 --derive makeArbitrary ''CheckProxySKConfirmedRes

@@ -8,7 +8,7 @@ module Pos.Txp
        , module Pos.Txp.Types
        ) where
 
-import           Pos.Txp.Arbitrary ()
+-- import           Pos.Txp.Arbitrary ()
 import           Pos.Txp.Class
 import           Pos.Txp.Error
 import           Pos.Txp.Holder

@@ -15,7 +15,7 @@ import           Pos.Binary.Update     ()
 import           Pos.Crypto            (sign, toPublic)
 import           Pos.Crypto.Arbitrary  ()
 import           Pos.Data.Attributes   (mkAttributes)
-import           Pos.Types.Arbitrary   ()
+-- import           Pos.Types.Arbitrary   ()
 import           Pos.Update.Core.Types (BlockVersionData (..), SystemTag, UpdateData (..),
                                         UpdatePayload (..), UpdateProposal (..),
                                         UpdateVote (..), VoteState (..), mkSystemTag)

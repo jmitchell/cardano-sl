@@ -10,7 +10,7 @@ import           Universum
 
 import           Pos.Binary.Block          ()
 import           Pos.Binary.Update         ()
-import           Pos.Types.Arbitrary       ()
+-- import           Pos.Types.Arbitrary       ()
 import           Pos.Update.Arbitrary.Core ()
 import           Pos.Update.Poll.Types     (ConfirmedProposalState (..),
                                             DecidedProposalState (..), DpsExtra (..),
